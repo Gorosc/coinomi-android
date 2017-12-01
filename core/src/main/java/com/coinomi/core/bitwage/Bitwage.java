@@ -1,5 +1,7 @@
 package com.coinomi.core.bitwage;
 
+import com.coinomi.core.bitwage.data.employer.payrolls.PayrollCreation;
+import com.coinomi.core.bitwage.data.employer.payrolls.WorkerPayrolls;
 import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPayroll;
 import com.coinomi.core.bitwage.data.user.Companies;
 import com.coinomi.core.bitwage.data.employer.profile.Company;
@@ -29,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static com.coinomi.core.bitwage.Constants.ACCESS_KEY;
 import static com.coinomi.core.bitwage.Constants.ACCESS_NONCE;
@@ -75,7 +79,7 @@ public class Bitwage extends Connection {
     private static final String GET_COMPANY_PAYROLLS = "company/payrolls?company_id=%s&page=%d";
     private static final String GET_COMPANY_PAYROLL_BY_ID = "company/payroll?company_id=%s&payroll_id=%s&page=%d";
     private static final String GET_WORKER_PAYROLLS = "company/worker/payrolls?company_id=%s&user_id=%s";
-    private static final String CREATE_PAYROLL = "company/workers/pay?company_id=%s&paywithid=%s";
+    private static final String CREATE_PAYROLL = "company/workers/pay?company_id=%s&paywithid=%b&deleteifnotmethod=%b";
     private static final String GET_PAYROLL_METHOD = "company/payroll/method?company_id=%s&payroll_id=%s";
     private static final String DELETE_PAYROLL = "company/payroll/delete";
 
@@ -319,5 +323,43 @@ public class Bitwage extends Connection {
         return new CompanyPayroll(getMakeApiCall(request));
     }
 
+    public WorkerPayrolls getWorkerPayrollsByUserId (BigInteger companyid, BigInteger userid, int page) throws IOException, ShapeShiftException, JSONException {
+        String accessnonce = String.valueOf(System.currentTimeMillis());
+        String url = getApiUrl(String.format(GET_WORKER_PAYROLLS, companyid.toString(), userid.toString(), page));
+        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
+                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
+                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
+                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+
+        return new WorkerPayrolls(getMakeApiCall(request));
+    }
+
+    public PayrollCreation createPayroll (BigInteger id, Boolean paywithid, Boolean deleteifnotmethod, Map<String, Double> payments) throws IOException, ShapeShiftException, JSONException {
+        String accessnonce = String.valueOf(System.currentTimeMillis());
+        String url = getApiUrl(String.format(CREATE_PAYROLL, id.toString(), paywithid, deleteifnotmethod));
+
+        JSONObject jsontopost = new JSONObject();
+        JSONArray paymentsArray = new JSONArray();
+
+        String receiverKey="email";
+        if (paywithid) {
+            receiverKey="id";
+        }
+        Iterator itr = payments.entrySet().iterator();
+        while(itr.hasNext()) {
+            Map.Entry pair = (Map.Entry) itr.next();
+            paymentsArray.put(new JSONObject().put(receiverKey,pair.getKey()).put("amound_usd",pair.getValue()));
+        }
+        jsontopost.put("to_pay", paymentsArray);
+
+        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
+
+        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
+                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
+                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
+                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+
+        return new PayrollCreation(getMakeApiCall(request));
+    }
     //Todo: Take in mind Optional Objects in JSON responses
  }

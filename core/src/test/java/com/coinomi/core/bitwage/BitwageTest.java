@@ -1,6 +1,8 @@
 package com.coinomi.core.bitwage;
 
 import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPayroll;
+import com.coinomi.core.bitwage.data.employer.payrolls.PayrollCreation;
+import com.coinomi.core.bitwage.data.employer.payrolls.WorkerPayrolls;
 import com.coinomi.core.bitwage.data.user.Companies;
 import com.coinomi.core.bitwage.data.employer.profile.Company;
 import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPayrollInfo;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by gkoro on 04-Sep-17.
@@ -299,6 +302,111 @@ public class BitwageTest {
 
         System.out.print(companyPayroll.toString());
     }
+
+    @Test
+    public void getWorkerPayrollsByUserIdTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(GET_WORKER_PAYROLLS));
+
+        WorkerPayrolls workerPayrolls = bitwage.getWorkerPayrollsByUserId(new BigInteger("5088651352473600"),new BigInteger("6523423654986751"),1);
+
+        System.out.print(workerPayrolls.toString());
+    }
+
+    @Test
+    public void createPayrollTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(CREATE_PAYROLL));
+
+        Map<String, Double> payments = new HashMap<>();
+        payments.put("example@example.com", 10.0);
+
+        PayrollCreation payrollCreation = bitwage.createPayroll(new BigInteger("5088651352473600"),false , false, payments);
+
+        System.out.print(payrollCreation.toString());
+    }
+
+    public static final String CREATE_PAYROLL = "{\n" +
+            "\"payroll_id\": 5822463824887808, \n" +
+            "\"status\":\"created\",\n" +
+            "\"suborder_list\": [\n" +
+            "{\n" +
+            "\"email\": \"example@example.com\",\n" +
+            "\"amount_usd\": \"10\"\n" +
+            "}\n" +
+            "],\n" +
+            "\"total_amount\": 10.0,\n" +
+            " \"currency\":\"USD\",\n" +
+            "\"num_suborders\": 1,\n" +
+            "\"payment_method\": \"ach_credit\",\n" +
+            "\"payment_method_set_msg\":\"\"\n" +
+            "}";
+
+    public static final String GET_WORKER_PAYROLLS= "{\n" +
+            "  \"company_id\": \"6403555720167424\",\n" +
+            "  \"company_name\": \"Example Company\",\n" +
+            "  \"payroll_not_fulfilled\": 33,\n" +
+            "  \"payroll_fulfilled\": 0,\n" +
+            "  \"total_fulfilled\": 0.0,\n" +
+            "  \"total_not_fulfilled\": 10000.06,\n" +
+            "  \"total_by_currency\": {\n" +
+            "    \"fulfilled\": {\n" +
+            "        \"USD\":0.0,\n" +
+            "        \"EUR\":0.0\n" +
+            "    },\n" +
+            "    \"not_fulfilled\": {\n" +
+            "        \"USD\":10000.06,\n" +
+            "        \"EUR\":0.0\n" +
+            "    }\n" +
+            "  },\n" +
+            "  \"payrolls\": [\n" +
+            "    {\n" +
+            "      \"amount\": 0.03,\n" +
+            "      \"currency\": \"USD\",\n" +
+            "      \"id\": 4838400918028288,\n" +
+            "      \"time_created\": \"2015-07-16T02:07:31.937968\",\n" +
+            "      \"userpayrolls\": [\n" +
+            "           {\n" +
+            "               \"user_email\": \"test3@example.com\", \n" +
+            "               \"user_id\": 5677071364398842, \n" +
+            "               \"userpayroll_id\": 6523423654986751\n" +
+            "           }\n" +
+            "       ]\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"amount\": 1.00,\n" +
+            "      \"currency\": \"USD\",\n" +
+            "      \"id\": 4234242238028288,\n" +
+            "      \"time_created\": \"2015-07-16T02:08:36.923968\",\n" +
+            "      \"userpayrolls\": [\n" +
+            "           {\n" +
+            "               \"user_email\": \"test3@example.com\", \n" +
+            "               \"user_id\": 5677071364398842, \n" +
+            "               \"userpayroll_id\": 6523423654986753\n" +
+            "           }\n" +
+            "       ]\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"meta\": {\n" +
+            "    \"curr_page\":1,\n" +
+            "    \"next_page\":\"\",\n" +
+            "    \"total_pages\":1\n" +
+            "  }\n" +
+            "}";
 
     public static final String GET_UUID_JSON =
             "{" +

@@ -4,7 +4,6 @@ import com.coinomi.core.bitwage.data.BitwageBase;
 import com.coinomi.core.bitwage.data.Pagination;
 import com.coinomi.core.exchange.shapeshift.data.ShapeShiftException;
 
-import org.bitcoin.protocols.payments.Protos;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -24,7 +23,7 @@ public class CompanyPayroll extends BitwageBase{
     private String date_fulfilled;
     private Double total_amount;
     private String currency;
-    private List<UserPayrollSimple> userpayrolls;
+    private List<InnerUserPayroll> userpayrolls;
     private String payment_type;
     private CompanyPaymentDetails paymentDetails;
     private Pagination meta;
@@ -43,11 +42,11 @@ public class CompanyPayroll extends BitwageBase{
                 userpayrolls = new ArrayList<>();
                 JSONArray userpayrollsarray = data.getJSONArray("userpayrolls");
                 for (int i = 0; i < userpayrollsarray.length() ; i++) {
-                    userpayrolls.add(new UserPayrollSimple(userpayrollsarray.getJSONObject(i)));
+                    userpayrolls.add(new InnerUserPayroll(userpayrollsarray.getJSONObject(i)));
                 }
 
                 payment_type=data.getString("payment_type");
-                paymentDetails=new CompanyPaymentDetails(data.getJSONObject("paymentDetails"));
+                paymentDetails=new CompanyPaymentDetails(data.getJSONObject("payment_details"));
                 meta=new Pagination(data.getJSONObject("meta"));
 
             } catch (Exception e) {
@@ -115,14 +114,6 @@ public class CompanyPayroll extends BitwageBase{
         this.currency = currency;
     }
 
-    public List<UserPayrollSimple> getUserpayrolls() {
-        return userpayrolls;
-    }
-
-    public void setUserpayrolls(List<UserPayrollSimple> userpayrolls) {
-        this.userpayrolls = userpayrolls;
-    }
-
     public String getPayment_type() {
         return payment_type;
     }
@@ -137,6 +128,14 @@ public class CompanyPayroll extends BitwageBase{
 
     public void setPaymentDetails(CompanyPaymentDetails paymentDetails) {
         this.paymentDetails = paymentDetails;
+    }
+
+    public List<InnerUserPayroll> getUserpayrolls() {
+        return userpayrolls;
+    }
+
+    public void setUserpayrolls(List<InnerUserPayroll> userpayrolls) {
+        this.userpayrolls = userpayrolls;
     }
 
     public Pagination getMeta() {
@@ -161,5 +160,73 @@ public class CompanyPayroll extends BitwageBase{
                 ", paymentDetails=" + paymentDetails +
                 ", meta=" + meta +
                 '}';
+    }
+
+    private class InnerUserPayroll extends BitwageBase {
+        private String amount;
+        private String currency;
+        private BigInteger user_id;
+        private String email;
+
+        public InnerUserPayroll(JSONObject data) throws ShapeShiftException {
+            super(data);
+            if (!isError) {
+                try {
+                    amount = data.getString("amount");
+                    user_id = new BigInteger(data.getString("user_id"));
+                    currency = data.getString("currency");
+                    email = data.getString("email");
+                } catch (Exception e) {
+                    throw new ShapeShiftException("Could not parse object", e);
+                }
+            } else {
+                amount = null;
+                user_id = null;
+                currency = null;
+                email = null;
+            }
+        }
+
+        public String getAmount() {
+            return amount;
+        }
+
+        public void setAmount(String amount) {
+            this.amount = amount;
+        }
+
+        public String getCurrency() {
+            return currency;
+        }
+
+        public void setCurrency(String currency) {
+            this.currency = currency;
+        }
+
+        public BigInteger getUser_id() {
+            return user_id;
+        }
+
+        public void setUser_id(BigInteger user_id) {
+            this.user_id = user_id;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        @Override
+        public String toString() {
+            return "InnerUserPayroll{" +
+                    "amount='" + amount + '\'' +
+                    ", currency='" + currency + '\'' +
+                    ", user_id=" + user_id +
+                    ", email='" + email + '\'' +
+                    '}';
+        }
     }
 }
