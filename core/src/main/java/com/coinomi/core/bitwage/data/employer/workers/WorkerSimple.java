@@ -23,7 +23,7 @@ public class WorkerSimple extends BitwageBase {
             try {
                 user_id = new BigInteger(data.getString("user_id"));
                 email = data.getString("email");
-                role = data.getString("role");
+                role = data.optString("role");
             } catch (Exception e) {
                 throw new ShapeShiftException("Could not parse object", e);
             }

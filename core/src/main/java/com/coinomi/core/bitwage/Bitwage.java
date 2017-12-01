@@ -2,6 +2,10 @@ package com.coinomi.core.bitwage;
 
 import com.coinomi.core.bitwage.data.employer.payrolls.PayrollCreation;
 import com.coinomi.core.bitwage.data.employer.payrolls.WorkerPayrolls;
+import com.coinomi.core.bitwage.data.employer.invoices.CompanyInvoices;
+import com.coinomi.core.bitwage.data.employer.invoices.Invoice;
+import com.coinomi.core.bitwage.data.employer.invoices.InvoiceApproval;
+import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPaymentMethod;
 import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPayroll;
 import com.coinomi.core.bitwage.data.user.Companies;
 import com.coinomi.core.bitwage.data.employer.profile.Company;
@@ -10,10 +14,12 @@ import com.coinomi.core.bitwage.data.employer.workers.EmailToIdResults;
 import com.coinomi.core.bitwage.data.user.Employer;
 import com.coinomi.core.bitwage.data.employer.workers.Invite;
 import com.coinomi.core.bitwage.data.employer.profile.LinkedAccount;
+import com.coinomi.core.bitwage.data.log.DeletePayrollLog;
 import com.coinomi.core.bitwage.data.log.InviteLog;
 import com.coinomi.core.bitwage.data.worker.UserPayrollsInfo;
 import com.coinomi.core.bitwage.data.user.Profile;
 import com.coinomi.core.bitwage.data.employer.workers.WorkersSimple;
+import com.coinomi.core.bitwage.data.PaymentMethod;
 import com.coinomi.core.bitwage.data.Tickers;
 import com.coinomi.core.bitwage.data.UserKeyPair;
 import com.coinomi.core.bitwage.data.employer.workers.Worker;
@@ -80,7 +86,7 @@ public class Bitwage extends Connection {
     private static final String GET_COMPANY_PAYROLL_BY_ID = "company/payroll?company_id=%s&payroll_id=%s&page=%d";
     private static final String GET_WORKER_PAYROLLS = "company/worker/payrolls?company_id=%s&user_id=%s";
     private static final String CREATE_PAYROLL = "company/workers/pay?company_id=%s&paywithid=%b&deleteifnotmethod=%b";
-    private static final String GET_PAYROLL_METHOD = "company/payroll/method?company_id=%s&payroll_id=%s";
+    private static final String SET_PAYROLL_METHOD = "company/payroll/method?company_id=%s&payroll_id=%s";
     private static final String DELETE_PAYROLL = "company/payroll/delete";
 
     /*Employer:Invoices*/
@@ -361,5 +367,43 @@ public class Bitwage extends Connection {
 
         return new PayrollCreation(getMakeApiCall(request));
     }
+    
+    public CompanyPaymentMethod setPaymentMethodForPayroll(BigInteger companyid, BigInteger payrollid, PaymentMethod paymentmethod) throws IOException, ShapeShiftException, JSONException {
+        String accessnonce = String.valueOf(System.currentTimeMillis());
+        String url = getApiUrl(String.format(SET_PAYROLL_METHOD, companyid.toString(), payrollid.toString()));
+
+        JSONObject jsontopost = new JSONObject();
+        jsontopost.put("payment_method", paymentmethod.toString().toLowerCase());
+       
+        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
+
+        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
+                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
+                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
+                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+
+        return new CompanyPaymentMethod(getMakeApiCall(request));
+    }
+
+	public DeletePayrollLog deletePayrollById(BigInteger bigInteger) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public CompanyInvoices getCompanyInvoices(BigInteger bigInteger) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public Invoice getCompanyInvoiceById(BigInteger bigInteger, BigInteger bigInteger2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public InvoiceApproval approveInvoice(BigInteger bigInteger, BigInteger bigInteger2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+    
     //Todo: Take in mind Optional Objects in JSON responses
  }

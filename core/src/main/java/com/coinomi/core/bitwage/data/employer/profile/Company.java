@@ -1,6 +1,5 @@
 package com.coinomi.core.bitwage.data.employer.profile;
 
-import com.coinomi.core.bitwage.Bitwage;
 import com.coinomi.core.bitwage.data.BitwageBase;
 import com.coinomi.core.exchange.shapeshift.data.ShapeShiftException;
 

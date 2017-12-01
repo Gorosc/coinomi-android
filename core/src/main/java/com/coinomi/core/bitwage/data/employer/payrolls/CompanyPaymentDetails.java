@@ -5,13 +5,11 @@ import com.coinomi.core.exchange.shapeshift.data.ShapeShiftException;
 
 import org.json.JSONObject;
 
-import java.math.BigInteger;
-
 /**
  * Created by gkoro on 04-Nov-17.
  */
 
-class CompanyPaymentDetails extends BitwageBase{
+class CompanyPaymentDetails extends BitwageBase{	
 
     private String printOnCheck;
     private String address;

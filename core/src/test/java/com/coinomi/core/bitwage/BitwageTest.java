@@ -1,5 +1,9 @@
 package com.coinomi.core.bitwage;
 
+import com.coinomi.core.bitwage.data.employer.invoices.CompanyInvoices;
+import com.coinomi.core.bitwage.data.employer.invoices.Invoice;
+import com.coinomi.core.bitwage.data.employer.invoices.InvoiceApproval;
+import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPaymentMethod;
 import com.coinomi.core.bitwage.data.employer.payrolls.CompanyPayroll;
 import com.coinomi.core.bitwage.data.employer.payrolls.PayrollCreation;
 import com.coinomi.core.bitwage.data.employer.payrolls.WorkerPayrolls;
@@ -10,10 +14,12 @@ import com.coinomi.core.bitwage.data.employer.workers.EmailToIdResults;
 import com.coinomi.core.bitwage.data.user.Employer;
 import com.coinomi.core.bitwage.data.employer.workers.Invite;
 import com.coinomi.core.bitwage.data.employer.profile.LinkedAccount;
+import com.coinomi.core.bitwage.data.log.DeletePayrollLog;
 import com.coinomi.core.bitwage.data.log.InviteLog;
 import com.coinomi.core.bitwage.data.worker.UserPayrollsInfo;
 import com.coinomi.core.bitwage.data.user.Profile;
 import com.coinomi.core.bitwage.data.employer.workers.WorkersSimple;
+import com.coinomi.core.bitwage.data.PaymentMethod;
 import com.coinomi.core.bitwage.data.UserKeyPair;
 import com.coinomi.core.bitwage.data.employer.workers.WorkerSimple;
 import com.coinomi.core.bitwage.data.employer.workers.Worker;
@@ -339,6 +345,193 @@ public class BitwageTest {
 
         System.out.print(payrollCreation.toString());
     }
+    
+    @Test
+    public void setPaymentMethodForPayrollTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(PAYROLL_PAYMENT_METHOD));
+
+        CompanyPaymentMethod paymentmethod = bitwage.setPaymentMethodForPayroll(new BigInteger("5088651352473600"),new BigInteger("5822463824887808"), PaymentMethod.WIRE);
+
+        System.out.print(paymentmethod.toString());
+    }
+    
+    @Test
+    public void deletePayrollByIdTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL_LOG_SUCESS));
+        
+        DeletePayrollLog deletepayrolllog = bitwage.deletePayrollById(new BigInteger("5822463824887809"));
+       
+        Assert.assertNotNull(deletepayrolllog.getSuccess());
+        Assert.assertEquals("5822463824887809", deletepayrolllog.getSuccess().get(0));
+        System.out.print(deletepayrolllog.toString());
+        
+        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL_LOG_FAILURE));
+        deletepayrolllog = bitwage.deletePayrollById(new BigInteger("5822463824887809"));
+
+        Assert.assertNotNull(deletepayrolllog.getFailure());
+        Assert.assertEquals("5822463824887809", deletepayrolllog.getFailure().get(0));
+        System.out.print(deletepayrolllog.toString());
+    }
+    
+    @Test
+    public void getCompanyInvoicesTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(COMPANY_INVOICES));
+        
+        CompanyInvoices companyInvoices = bitwage.getCompanyInvoices(new BigInteger("5769603078684622"));
+             
+        System.out.println(companyInvoices.toString());
+    }
+    
+    @Test
+    public void getCompanyInvoiceByIdTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(INVOICE));
+        
+        Invoice invoice = bitwage.getCompanyInvoiceById(new BigInteger("5769603078684622"),new BigInteger("5769603078684633"));
+             
+        System.out.println(invoice.toString());
+    }
+    
+    @Test
+    public void approveInvoiceTest() throws JSONException, ShapeShiftException, IOException {
+
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        Bitwage bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
+        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL_LOG_SUCESS));
+        
+        InvoiceApproval approval = bitwage.approveInvoice(new BigInteger("5769603078684622"),new BigInteger("2384192341092834"));
+             
+        System.out.println(approval.toString());
+    }
+    
+    public static final String APPROVE_INVOICE = "{\n" + 
+    		"    \"invoice\": {\n" + 
+    		"        \"id\": 5822463824887808,\n" + 
+    		"        \"status\": \"approved\", \n" + 
+    		"        \"currency\": \"USD\", \n" + 
+    		"        \"total_amount_fiat\": 10000.0\n" + 
+    		"    },\n" + 
+    		"    \"payroll\": {\n" + 
+    		"        \"id\": 5822463824887833,\n" + 
+    		"        \"total_amount\": 10000.0\n" + 
+    		"        \"currency\": \"USD\", \n" + 
+    		"        \"status\": \"created\", \n" + 
+    		"        \"num_suborders\": 1,\n" + 
+    		"        \"suborder_list\": [{\n" + 
+    		"            \"amount_usd\": \"10000.00\", \n" + 
+    		"            \"user_id\": 5707702298738622, \n" + 
+    		"            \"email\": \"joasdf@gmail.com\"\n" + 
+    		"        }],\n" + 
+    		"        \"payment_method\":\"None\",\n" + 
+    		"        \"payment_method_set_msg\": \"None or Unsupported Default Payment Method \"\n" + 
+    		"    }\n" + 
+    		"}";
+    
+    public static final String INVOICE = "{\n" + 
+    		"  \"id\": 5769603078684633,\n" + 
+    		"  \"company\": {\n" + 
+    		"    \"id\": 5769603078684622,\n" + 
+    		"    \"name\": \"Test, Inc\",\n" + 
+    		"    \"phone_number\": \"+1 (204) 200-3963\",\n" + 
+    		"    \"street_address\": \"123 First Street\",\n" + 
+    		"    \"city\": \"Knoxville\",\n" + 
+    		"    \"state\": \"TN\",\n" + 
+    		"    \"zip\": \"34443\",\n" + 
+    		"    \"website_url\": \"http://example.com\",\n" + 
+    		"    \"ein\": \"12-1234567\",\n" + 
+    		"    \"email\" \"support@example.com\": \n" + 
+    		"  },\n" + 
+    		"  \"worker\": {\n" + 
+    		"    \"id\": 5769603078684611,\n" + 
+    		"    \"email\": \"test@example.com\"\n" + 
+    		"  },\n" + 
+    		"  \"line_items\":[{\n" + 
+    		"    \"time\": 20.0,\n" + 
+    		"    \"amount_fiat\": 1000.0,\n" + 
+    		"    \"amountpertime\": 50.0,\n" + 
+    		"    \"currency\": \"USD\",\n" + 
+    		"    \"description\": \"front end development\"\n" + 
+    		"  }],\n" + 
+    		"  \"time_created\": \"2016-03-07 22:10:29.049796\",\n" + 
+    		"  \"currency\": \"USD\", \n" + 
+    		"  \"amount\": 1000.0, \n" + 
+    		"  \"due date\": \"2016-03-07\", \n" + 
+    		"  \"approved\": true\n" + 
+    		"}";
+    
+    public static final String COMPANY_INVOICES = "{\n" + 
+    		"  \"company\": {\n" + 
+    		"    \"id\": \"6122080743456768\",\n" + 
+    		"    \"name\": \"Hello, Inc.\"\n" + 
+    		"  }\n" + 
+    		"  \"invoices\": \n" + 
+    		"    [\n" + 
+    		"      {\n" + 
+    		"        \"id\": 5725981679550464, \n" + 
+    		"        \"worker\": {\n" + 
+    		"            \"id\": 6122080743456722,\n" + 
+    		"            \"email\": \"test@example.com\"\n" + 
+    		"        },\n" + 
+    		"        \"total_amount_fiat\": 1000.0, \n" + 
+    		"        \"time_created\": \"2016-03-07 22:10:29.049796\", \n" + 
+    		"        \"currency\": \"USD\",\n" + 
+    		"        \"payroll_id\": 6122080743456555,\n" + 
+    		"        \"due_date\": \"2016-03-07\",\n" + 
+    		"        \"approved\": false\n" + 
+    		"      }\n" + 
+    		"    ]\n" + 
+    		"}";
+    
+    public static final String DELETE_PAYROLL_LOG_FAILURE = "{\n" + 
+    		"  \"success\": [5822463824887809],\n" + 
+    		"}";
+    
+    public static final String DELETE_PAYROLL_LOG_SUCESS = "{\n" + 
+    		"  \"success\": [5822463824887809],\n" + 
+    		"}";
+    
+    public static final String PAYROLL_PAYMENT_METHOD = "{\n" +
+    		"\"status\": \"success\",\n" +
+    		"\"payroll_id\": \"5822463824887808\",\n" +
+    		"\"payment_method\": \"wire\",\n" +
+    		"\"payment_method_set_msg\": \"\"\n" +
+    		"}";
 
     public static final String CREATE_PAYROLL = "{\n" +
             "\"payroll_id\": 5822463824887808, \n" +
