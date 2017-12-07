@@ -84,14 +84,14 @@ public class Bitwage extends Connection {
     /*Employer:Payrolls*/
     private static final String GET_COMPANY_PAYROLLS = "company/payrolls?company_id=%s&page=%d";
     private static final String GET_COMPANY_PAYROLL_BY_ID = "company/payroll?company_id=%s&payroll_id=%s&page=%d";
-    private static final String GET_WORKER_PAYROLLS = "company/worker/payrolls?company_id=%s&user_id=%s";
+    private static final String GET_WORKER_PAYROLLS = "company/worker/payrolls?company_id=%s&user_id=%s&page=%d";
     private static final String CREATE_PAYROLL = "company/workers/pay?company_id=%s&paywithid=%b&deleteifnotmethod=%b";
     private static final String SET_PAYROLL_METHOD = "company/payroll/method?company_id=%s&payroll_id=%s";
     private static final String DELETE_PAYROLL = "company/payroll/delete";
 
     /*Employer:Invoices*/
     private static final String GET_COMPANY_INVOICES = "company/invoices?company_id=%s";
-    private static final String GET_COMPANY_IVNOICE = "company/invoices?company_id=%s&invoice_id=%s";
+    private static final String GET_COMPANY_INVOICE = "company/invoices?company_id=%s&invoice_id=%s";
     private static final String APPROVE_INVOICE = "company/invoice/approve?company_id=%s";
 
     private String apiKey;
@@ -119,30 +119,19 @@ public class Bitwage extends Connection {
     }
 
     public Profile getProfile() throws ShapeShiftException, IOException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
-        Request request = new Request.Builder().url(getApiUrl(GET_PROFILE)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(GET_PROFILE), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+        Request request = buildGetRequest(getApiUrl(GET_PROFILE));
         return new Profile(getMakeApiCall(request));
     }
 
     public Companies getCompanies() throws ShapeShiftException, IOException {
         String accessnonce = String.valueOf(System.currentTimeMillis());
-        Request request = new Request.Builder().url(getApiUrl(GET_COMPANIES)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(GET_COMPANIES), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+        Request request = buildGetRequest(getApiUrl(GET_COMPANIES));
         return new Companies(getMakeApiCall(request));
     }
 
     public List<Employer> bpicompanyview() throws ShapeShiftException, IOException, JSONException {
         List<Employer> employerlist = new ArrayList<>();
-        String accessnonce = String.valueOf(System.currentTimeMillis());
-        Request request = new Request.Builder().url(getApiUrl(BPI_COMPANY_VIEW)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(BPI_COMPANY_VIEW), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+        Request request = buildGetRequest(getApiUrl(BPI_COMPANY_VIEW));
         JSONArray employersarray = getMakeApiCall(request).getJSONArray("bpiemplist");
         for (int i=0 ; i < employersarray.length() ; i++) {
             employerlist.add(new Employer(employersarray.getJSONObject(i)));
@@ -153,86 +142,57 @@ public class Bitwage extends Connection {
     public List<Employer> bpicompanyedit(Employer employer) throws JSONException, IOException, ShapeShiftException {
 
         List<Employer> employerlist = new ArrayList<>();
-        String accessnonce = String.valueOf(System.currentTimeMillis());
-
         JSONObject jsontopost = employer.getJson();
         jsontopost.remove("order");
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
 
-        Request request = new Request.Builder().url(getApiUrl(BPI_COMPANY_EDIT)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(BPI_COMPANY_EDIT)+ jsontopost.toString(), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest(getApiUrl(BPI_COMPANY_EDIT), jsontopost);
         JSONArray employersarray = getMakeApiCall(request).getJSONArray("bpiemplist");
         for (int i=0 ; i < employersarray.length() ; i++) {
             employerlist.add(new Employer(employersarray.getJSONObject(i)));
         }
         return employerlist;
     }
-
+    //TODO: add unit test
     public List<Employer> bpicompanyadd(Employer employer) throws JSONException, IOException, ShapeShiftException {
 
         List<Employer> employerlist = new ArrayList<>();
-        String accessnonce = String.valueOf(System.currentTimeMillis());
 
         JSONObject jsontopost = employer.getJson();
         jsontopost.remove("order");
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
 
-        Request request = new Request.Builder().url(getApiUrl(BPI_COMPANY_ADD)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(BPI_COMPANY_ADD)+ jsontopost.toString(), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest(getApiUrl(BPI_COMPANY_ADD), jsontopost);
         JSONArray employersarray = getMakeApiCall(request).getJSONArray("bpiemplist");
         for (int i=0 ; i < employersarray.length() ; i++) {
             employerlist.add(new Employer(employersarray.getJSONObject(i)));
         }
         return employerlist;
     }
-
+    //TODO: add unit test
     public boolean bpicompanydelete(Employer employer) throws JSONException, IOException, ShapeShiftException {
-
-        String accessnonce = String.valueOf(System.currentTimeMillis());
 
         JSONObject jsontopost = new JSONObject();
         jsontopost.put("bpionboardid",employer.getBpionboardid());
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
 
-        Request request = new Request.Builder().url(getApiUrl(BPI_COMPANY_DELETE)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(BPI_COMPANY_DELETE)+ jsontopost.toString(), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest( getApiUrl(BPI_COMPANY_DELETE), jsontopost);
         JSONObject response = getMakeApiCall(request);
         return response.get("status").equals("success");
     }
 
     public UserPayrollsInfo getPayrolls() throws ShapeShiftException, IOException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
-        Request request = new Request.Builder().url(getApiUrl(USER_PAYROLLS)).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+getApiUrl(USER_PAYROLLS), this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+        Request request = buildGetRequest(getApiUrl(USER_PAYROLLS));
         return new UserPayrollsInfo(getMakeApiCall(request));
     }
 
     public Company getCompanyByid(BigInteger id) throws IOException, ShapeShiftException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_COMPANY_BY_ID, id.toString()));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+        Request request = buildGetRequest(url);
         return new Company(getMakeApiCall(request));
     }
 
     public List<LinkedAccount> getLinkedAccountsByid(BigInteger id) throws IOException, ShapeShiftException, JSONException {
         List<LinkedAccount> linkedAccountList = new ArrayList<>();
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_LINKED_ACCOUNTS, id.toString()));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+        Request request = buildGetRequest(url);
         JSONArray responsearray = getMakeApiCall(request).getJSONArray("linkedaccounts");
         for (int i=0; i < responsearray.length() ; i++) {
             linkedAccountList.add(new LinkedAccount(responsearray.getJSONObject(i)));
@@ -241,29 +201,18 @@ public class Bitwage extends Connection {
     }
 
     public WorkersSimple getWorkersByCompanyId(BigInteger id, int page) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_WORKERS, id.toString(), page));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
-
+        Request request = buildGetRequest(url);
         return new WorkersSimple(getMakeApiCall(request));
     }
 
     public Worker getWorkerById (BigInteger companyid, BigInteger userid) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_WORKER_BY_ID, companyid.toString(), userid.toString()));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
-
+        Request request = buildGetRequest(url);
         return new Worker(getMakeApiCall(request));
     }
 
     public List<InviteLog> inviteWorkers(BigInteger id, List<Invite> inviteList) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(INVITE_WORKER, id.toString()));
 
         JSONObject jsontopost = new JSONObject();
@@ -272,11 +221,7 @@ public class Bitwage extends Connection {
             inviteArray.put(invite.toString());
         }
         jsontopost.put("to_invite", inviteArray);
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest(url, jsontopost);
 
         List<InviteLog> inviteLogList= new ArrayList<>();
 
@@ -288,7 +233,6 @@ public class Bitwage extends Connection {
     }
 
     public EmailToIdResults emailtoId (BigInteger id, List<String> emails) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(EMAIL_TO_ID, id.toString()));
 
         JSONObject jsontopost = new JSONObject();
@@ -297,51 +241,30 @@ public class Bitwage extends Connection {
             emailArray.put(email);
         }
         jsontopost.put("emails", emailArray);
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
-
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest(url, jsontopost);
 
         return new EmailToIdResults(getMakeApiCall(request));
     }
 
     public CompanyPayrollInfo getCompanyPayrolls(BigInteger id, int page) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_COMPANY_PAYROLLS, id.toString(), page));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
-
+        Request request = buildGetRequest(url);
         return new CompanyPayrollInfo(getMakeApiCall(request));
     }
 
     public CompanyPayroll getCompanyPayrollById(BigInteger companyid, BigInteger payrollid, int page) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_COMPANY_PAYROLL_BY_ID, companyid.toString(), payrollid.toString(), page));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
-
+        Request request = buildGetRequest(url);
         return new CompanyPayroll(getMakeApiCall(request));
     }
 
     public WorkerPayrolls getWorkerPayrollsByUserId (BigInteger companyid, BigInteger userid, int page) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(GET_WORKER_PAYROLLS, companyid.toString(), userid.toString(), page));
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
-
+        Request request = buildGetRequest(url);
         return new WorkerPayrolls(getMakeApiCall(request));
     }
 
     public PayrollCreation createPayroll (BigInteger id, Boolean paywithid, Boolean deleteifnotmethod, Map<String, Double> payments) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(CREATE_PAYROLL, id.toString(), paywithid, deleteifnotmethod));
 
         JSONObject jsontopost = new JSONObject();
@@ -358,52 +281,67 @@ public class Bitwage extends Connection {
         }
         jsontopost.put("to_pay", paymentsArray);
 
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
-
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest(url, jsontopost);
 
         return new PayrollCreation(getMakeApiCall(request));
     }
     
     public CompanyPaymentMethod setPaymentMethodForPayroll(BigInteger companyid, BigInteger payrollid, PaymentMethod paymentmethod) throws IOException, ShapeShiftException, JSONException {
-        String accessnonce = String.valueOf(System.currentTimeMillis());
         String url = getApiUrl(String.format(SET_PAYROLL_METHOD, companyid.toString(), payrollid.toString()));
 
         JSONObject jsontopost = new JSONObject();
         jsontopost.put("payment_method", paymentmethod.toString().toLowerCase());
-       
-        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
 
-        Request request = new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
-                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
-                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
-                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+        Request request = buildPostRequest(url, jsontopost);
 
         return new CompanyPaymentMethod(getMakeApiCall(request));
     }
 
-	public DeletePayrollLog deletePayrollById(BigInteger bigInteger) {
-		// TODO Auto-generated method stub
-		return null;
+	public DeletePayrollLog deletePayrollById(BigInteger payroll_id) throws IOException, ShapeShiftException, JSONException {
+        String url = getApiUrl(DELETE_PAYROLL);
+        JSONObject jsontopost = new JSONObject();
+        jsontopost.put("to_delete", new JSONArray().put(payroll_id.toString()));
+        Request request = buildPostRequest(url, jsontopost);
+        return new DeletePayrollLog(getMakeApiCall(request));
 	}
 
-	public CompanyInvoices getCompanyInvoices(BigInteger bigInteger) {
-		// TODO Auto-generated method stub
-		return null;
+    public CompanyInvoices getCompanyInvoices(BigInteger companyId) throws IOException, ShapeShiftException {
+        String url = getApiUrl(String.format(GET_COMPANY_INVOICES, companyId.toString()));
+        Request request = buildGetRequest(url);
+        return new CompanyInvoices(getMakeApiCall(request));
 	}
 
-	public Invoice getCompanyInvoiceById(BigInteger bigInteger, BigInteger bigInteger2) {
-		// TODO Auto-generated method stub
-		return null;
+
+    public Invoice getCompanyInvoiceById(BigInteger company_id, BigInteger invoice_id) throws IOException, ShapeShiftException {
+		String url = getApiUrl(String.format(GET_COMPANY_INVOICE, company_id.toString(), invoice_id.toString()));
+        Request request = buildGetRequest(url);
+        return new Invoice(getMakeApiCall(request));
 	}
 
-	public InvoiceApproval approveInvoice(BigInteger bigInteger, BigInteger bigInteger2) {
-		// TODO Auto-generated method stub
-		return null;
+	public InvoiceApproval approveInvoice(BigInteger company_id, BigInteger invoice_id) throws IOException, ShapeShiftException, JSONException {
+        String url = getApiUrl(String.format(APPROVE_INVOICE, company_id.toString()));
+        JSONObject jsontopost = new JSONObject();
+        jsontopost.put("invoice_id",invoice_id.toString());
+        Request request = buildPostRequest(url,jsontopost);
+        return new InvoiceApproval(getMakeApiCall(request));
 	}
+
+    private Request buildGetRequest(String url) {
+        String accessnonce = String.valueOf(System.currentTimeMillis());
+        return new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
+                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
+                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url, this.secretKey))
+                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).build();
+    }
+
+    private Request buildPostRequest(String url, JSONObject jsontopost) {
+        RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, jsontopost.toString() );
+        String accessnonce = String.valueOf(System.currentTimeMillis());
+        return new Request.Builder().url(url).addHeader(USER_AGENT, THIS_USER_AGENT)
+                .addHeader(USER_APP, String.valueOf(true)).addHeader(ACCESS_KEY, this.apiKey)
+                .addHeader(ACCESS_SIGNATURE, getHMAC256Signature(accessnonce+url+jsontopost.toString(), this.secretKey))
+                .addHeader(CONTENT_TYPE,MEDIA_TYPE_JSON.toString()).addHeader(ACCESS_NONCE, accessnonce).post(body).build();
+    }
     
     //Todo: Take in mind Optional Objects in JSON responses
  }

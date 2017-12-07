@@ -31,7 +31,7 @@ public class SimpleInvoice extends BitwageBase {
             try {
             	id=new BigInteger(data.getString("id"));
             	worker=new WorkerSimple(data.getJSONObject("worker"));
-            	total_amount_fiat=data.getDouble("totat_amount_fiat");
+            	total_amount_fiat=data.getDouble("total_amount_fiat");
             	time_created=data.getString("time_created");
             	currency=data.getString("currency");
             	payroll_id=new BigInteger(data.getString("payroll_id"));

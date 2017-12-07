@@ -14,10 +14,8 @@ import com.coinomi.core.bitwage.data.BitwageBase;
 import com.coinomi.core.exchange.shapeshift.data.ShapeShiftException;
 
 public class DeletePayrollLog extends BitwageBase {
-	
-	@Nullable
+
 	private List<BigInteger> success;
-	@Nullable
 	private List<BigInteger> failure;
 
 	public DeletePayrollLog(JSONObject data) throws ShapeShiftException, JSONException {
@@ -31,8 +29,10 @@ public class DeletePayrollLog extends BitwageBase {
 						success.add(new BigInteger(successArray.getString(i)));	
 					}
 				}
+
 				JSONArray failureArray = data.optJSONArray("failure");
 				if (failureArray.length() > 0) {
+					failure = new ArrayList<>();
 					for (int i = 0; i < failureArray.length(); i++) {
 						failure.add(new BigInteger(failureArray.getJSONObject(i).getString("payroll_id")));
 					}

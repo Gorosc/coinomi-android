@@ -41,6 +41,28 @@ public class CompanyInvoices extends BitwageBase {
         }
     }
 
-    
+    @Override
+    public String toString() {
+        return "CompanyInvoices{" +
+                "company=" + company +
+                ", invoices=" + invoices +
+                '}';
+    }
+
+    public SimpleCompany getCompany() {
+        return company;
+    }
+
+    public void setCompany(SimpleCompany company) {
+        this.company = company;
+    }
+
+    public List<SimpleInvoice> getInvoices() {
+        return invoices;
+    }
+
+    public void setInvoices(List<SimpleInvoice> invoices) {
+        this.invoices = invoices;
+    }
 }
 

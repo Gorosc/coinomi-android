@@ -31,7 +31,11 @@ public class PayrollCreation extends BitwageBase{
         if (!isError) {
             try {
                 status=data.getString("status");
-                payroll_id=new BigInteger(data.getString("payroll_id"));
+                if (data.has("payroll_id"))
+                    payroll_id = new BigInteger(data.getString("payroll_id"));
+                else if (data.has("id"))
+                    payroll_id = new BigInteger(data.getString("id"));
+                else throw new ShapeShiftException("Payroll has no id");
                 currency=data.getString("currency");
                 total_amount=data.optDouble("total_amount");
                 num_suborders=data.getInt("num_suborders");

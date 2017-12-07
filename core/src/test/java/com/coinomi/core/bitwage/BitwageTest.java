@@ -30,6 +30,7 @@ import com.squareup.okhttp.mockwebserver.MockWebServer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,9 +51,10 @@ public class BitwageTest {
 
     private MockWebServer server;
     private Authentication authentication;
+    private Bitwage bitwage;
 
-    private static final String USERNAME = "chr.goros@gmail.com";
-    private static final String PASSWORD = "tr1n1tr0n";
+    private static final String USERNAME = "joeshoe@gmail.com";
+    private static final String PASSWORD = "asjdfioas";
     private static final String ACCESS_TOKEN = "939393";
 
     UserKeyPair userkeypair;
@@ -62,6 +64,17 @@ public class BitwageTest {
         String signature = Connection.getHMAC256Signature("this is an hmac test", "400025f683e43791225c");
         System.out.print(signature + "\n");
         Assert.assertEquals("22ec2da74c9b9abbe00e5681b0bed4b801298af85b385f215937e594595250f3", signature);
+    }
+
+    @Before
+    public void initMockBitwage() throws IOException, ShapeShiftException, JSONException {
+        server = new MockWebServer();
+        server.start();
+
+        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
+        bitwage = new Bitwage(userkeypair);
+        bitwage.baseUrl = server.getUrl("/").toString();
+        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
     }
 
    /* @Before
@@ -74,39 +87,41 @@ public class BitwageTest {
         authentication.setApiPublicKey("7df2a716d4004666a4ee77c62189797c");
         authentication.setSecret("d4f86342e78742b9bd334988d21ab026");
     }
+    */
 
     @After
     public void tearDown() throws IOException {
         server.shutdown();
     }
-    */
 
     @Test
     public void loginTest() {
 
-        //server.enqueue(new MockResponse().setBody(GET_UUID_JSON));
-
         authentication = new Authentication();
-        authentication.setApiPublicKey("7df2a716d4004666a4ee77c62189797c");
-        authentication.setSecret("d4f86342e78742b9bd334988d21ab026");
+        authentication.baseUrl = server.getUrl("/").toString();
+        authentication.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
 
+        //Generated hashes, not coinomi actual api keys
+        authentication.setApiPublicKey("a429f53a2780bb6cdfa5881dc708ebf1");
+        authentication.setSecret("fd6d24e6cb8ee31e751d5ba6db1ddb65");
+
+        server.enqueue(new MockResponse().setBody(UUID));
         String uuid = authentication.login(USERNAME, PASSWORD);
 
         Assert.assertEquals("d72f22b5-cb00-4168-8f82-50ca35956f3d", uuid);
 
-        //server.enqueue(new MockResponse().setBody(GET_SECRET_KEY));
+        server.enqueue(new MockResponse().setBody(GET_SECRET_KEY));
 
         UserKeyPair userKeyPair = authentication.twofa(USERNAME, uuid, ACCESS_TOKEN);
 
-        Assert.assertEquals("chr.goros@gmail.com", userKeyPair.getUsername());
-        Assert.assertEquals("a1de83637ed646a6add61c6227394710", userKeyPair.getApikey());
-        Assert.assertEquals("211ec2845f0640f281f0ba03605896b2", userKeyPair.getApisecret());
+        Assert.assertEquals("joeshoe@gmail.com", userKeyPair.getUsername());
+        Assert.assertEquals("b47a747c2c654adba50f41acd2939511", userKeyPair.getApikey());
+        Assert.assertEquals("80fe301033df46efb36355247044bbcb", userKeyPair.getApisecret());
     }
 
     @Test
     public void tickersTest() throws IOException, ShapeShiftException {
-
-        Bitwage bitwage = new Bitwage(userkeypair);
+        server.enqueue(new MockResponse().setBody(TICKERS));
         HashMap<String, Double> tickers;
         tickers = bitwage.getTickers().getTickers();
         System.out.print(tickers.toString() + "\n");
@@ -115,19 +130,15 @@ public class BitwageTest {
 
     @Test
     public void profileTest() throws JSONException, ShapeShiftException, IOException {
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
+        server.enqueue(new MockResponse().setBody(PROFILE));
         Profile profile = bitwage.getProfile();
-        Assert.assertEquals("5651039470485504", profile.getUserid());
+        Assert.assertEquals("139343039393", profile.getUserid());
         System.out.print(profile.getFirstname() + " " + profile.getLastname() + "\n");
     }
 
     @Test
     public void companiesTest() throws JSONException, ShapeShiftException, IOException {
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
+        server.enqueue(new MockResponse().setBody(COMPANIES));
         Companies companies = bitwage.getCompanies();
         System.out.print(companies.getCompanies().toString());
 
@@ -135,308 +146,136 @@ public class BitwageTest {
 
     @Test
     public void bpicompanyviewTest() throws JSONException, ShapeShiftException, IOException {
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
+        server.enqueue(new MockResponse().setBody(BPIEMPLIST));
         List<Employer> employers = bitwage.bpicompanyview();
         System.out.print(employers.toString());
-
     }
 
     @Test
     public void bpicompanyeditTest() throws JSONException, ShapeShiftException, IOException {
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-
+        server.enqueue(new MockResponse().setBody(BPIEMPLIST));
         Employer employer = new Employer(new JSONObject(BPIEMPLOYER));
         List<Employer> employers = bitwage.bpicompanyedit(employer);
         System.out.print(employers.toString());
-
     }
 
     @Test
     public void payrollsTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
-
         server.enqueue(new MockResponse().setBody(PAYROLL));
         UserPayrollsInfo payrollinfo = bitwage.getPayrolls();
-
         System.out.print(payrollinfo.getUserpayrolls().toString());
-        server.shutdown();
     }
 
     @Test
     public void getCompanyByidTest() throws JSONException, ShapeShiftException, IOException {
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-
-        Company comp = bitwage.getCompanyByid(new BigInteger("5088651352473600"));
-        Assert.assertEquals("Employer1", comp.getCompany_name());
-        System.out.print(comp.getCompany_name());
+        server.enqueue(new MockResponse().setBody(COMPANY));
+        Company comp = bitwage.getCompanyByid(new BigInteger("6403555720167424"));
+        Assert.assertEquals("Example Company", comp.getCompany_name());
+        System.out.print(comp);
     }
 
     @Test
     public void getWorkersByCompanyidTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(WORKERLIST));
-        List<WorkerSimple> workerSimpleList = new ArrayList<>();
         WorkersSimple workers = bitwage.getWorkersByCompanyId(new BigInteger("5088651352473600"), 1);
-
         System.out.print(workers.getWorkerSimpleList().toString());
     }
 
     @Test
     public void getLinkedAccountsTest() throws JSONException, ShapeShiftException, IOException {
-
-        //server = new MockWebServer();
-        //server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        //bitwage.baseUrl = server.getUrl("/").toString();
-        //bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
-        //server.enqueue(new MockResponse().setBody(LINKEDACCOUNTS));
-
+        server.enqueue(new MockResponse().setBody(LINKEDACCOUNTS));
         List<LinkedAccount> linkedaccounts = bitwage.getLinkedAccountsByid(new BigInteger("5088651352473600"));
-
         System.out.print(linkedaccounts.toString());
     }
 
     @Test
     public void getWorkerByIdTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(WORKER));
-
         Worker worker  = bitwage.getWorkerById(new BigInteger("5088651352473600"), new BigInteger("5190345373515776"));
-
         System.out.print(worker.toString());
     }
 
     @Test
     public void inviteWorkersTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(INVITEWORKERS));
-
         List<Invite> inviteList= new ArrayList<>();
         inviteList.add(new Invite("example@example.com", "admin"));
         List<InviteLog> inviteLogList  = bitwage.inviteWorkers(new BigInteger("5088651352473600"), inviteList);
-
         System.out.print(inviteLogList.toString());
     }
 
     @Test
     public void emailtoIdTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(EMAILTOID));
-
         List<String> emails= new ArrayList<>();
         emails.add("success@success.com");
         emails.add("failure@failure.com");
-
         EmailToIdResults results = bitwage.emailtoId(new BigInteger("5088651352473600"), emails);
-
         System.out.print(results.toString());
     }
 
     @Test
     public void getCompanyPayrollsTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(COMPANY_PAYROLLS));
-
         CompanyPayrollInfo companyPayrolls = bitwage.getCompanyPayrolls(new BigInteger("5088651352473600"),1);
-
         System.out.print(companyPayrolls.toString());
     }
 
     @Test
     public void getCompanyPayrollByIdTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(COMPANY_PAYROLL));
-
         CompanyPayroll companyPayroll = bitwage.getCompanyPayrollById(new BigInteger("5088651352473600"),new BigInteger("4838400918028288"),1);
-
         System.out.print(companyPayroll.toString());
     }
 
     @Test
     public void getWorkerPayrollsByUserIdTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(GET_WORKER_PAYROLLS));
-
         WorkerPayrolls workerPayrolls = bitwage.getWorkerPayrollsByUserId(new BigInteger("5088651352473600"),new BigInteger("6523423654986751"),1);
-
         System.out.print(workerPayrolls.toString());
     }
 
     @Test
     public void createPayrollTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(CREATE_PAYROLL));
-
         Map<String, Double> payments = new HashMap<>();
         payments.put("example@example.com", 10.0);
-
         PayrollCreation payrollCreation = bitwage.createPayroll(new BigInteger("5088651352473600"),false , false, payments);
-
         System.out.print(payrollCreation.toString());
     }
     
     @Test
     public void setPaymentMethodForPayrollTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(PAYROLL_PAYMENT_METHOD));
-
         CompanyPaymentMethod paymentmethod = bitwage.setPaymentMethodForPayroll(new BigInteger("5088651352473600"),new BigInteger("5822463824887808"), PaymentMethod.WIRE);
-
         System.out.print(paymentmethod.toString());
     }
     
     @Test
     public void deletePayrollByIdTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
-        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL_LOG_SUCESS));
-        
+        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL));
         DeletePayrollLog deletepayrolllog = bitwage.deletePayrollById(new BigInteger("5822463824887809"));
-       
-        Assert.assertNotNull(deletepayrolllog.getSuccess());
-        Assert.assertEquals("5822463824887809", deletepayrolllog.getSuccess().get(0));
-        System.out.print(deletepayrolllog.toString());
-        
-        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL_LOG_FAILURE));
-        deletepayrolllog = bitwage.deletePayrollById(new BigInteger("5822463824887809"));
-
-        Assert.assertNotNull(deletepayrolllog.getFailure());
-        Assert.assertEquals("5822463824887809", deletepayrolllog.getFailure().get(0));
         System.out.print(deletepayrolllog.toString());
     }
     
     @Test
     public void getCompanyInvoicesTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(COMPANY_INVOICES));
-        
         CompanyInvoices companyInvoices = bitwage.getCompanyInvoices(new BigInteger("5769603078684622"));
-             
         System.out.println(companyInvoices.toString());
     }
     
     @Test
     public void getCompanyInvoiceByIdTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
         server.enqueue(new MockResponse().setBody(INVOICE));
-        
         Invoice invoice = bitwage.getCompanyInvoiceById(new BigInteger("5769603078684622"),new BigInteger("5769603078684633"));
-             
         System.out.println(invoice.toString());
     }
     
     @Test
     public void approveInvoiceTest() throws JSONException, ShapeShiftException, IOException {
-
-        server = new MockWebServer();
-        server.start();
-
-        userkeypair = new UserKeyPair(new JSONObject(GET_SECRET_KEY));
-        Bitwage bitwage = new Bitwage(userkeypair);
-        bitwage.baseUrl = server.getUrl("/").toString();
-        bitwage.client.setConnectionSpecs(Collections.singletonList(ConnectionSpec.CLEARTEXT));
-        server.enqueue(new MockResponse().setBody(DELETE_PAYROLL_LOG_SUCESS));
-        
+        server.enqueue(new MockResponse().setBody(APPROVE_INVOICE));
         InvoiceApproval approval = bitwage.approveInvoice(new BigInteger("5769603078684622"),new BigInteger("2384192341092834"));
-             
         System.out.println(approval.toString());
     }
     
@@ -445,11 +284,11 @@ public class BitwageTest {
     		"        \"id\": 5822463824887808,\n" + 
     		"        \"status\": \"approved\", \n" + 
     		"        \"currency\": \"USD\", \n" + 
-    		"        \"total_amount_fiat\": 10000.0\n" + 
+    		"        \"total_amount_fiat\": 10000.0\n" +
     		"    },\n" + 
     		"    \"payroll\": {\n" + 
     		"        \"id\": 5822463824887833,\n" + 
-    		"        \"total_amount\": 10000.0\n" + 
+    		"        \"total_amount\": 10000.0,\n" +
     		"        \"currency\": \"USD\", \n" + 
     		"        \"status\": \"created\", \n" + 
     		"        \"num_suborders\": 1,\n" + 
@@ -475,7 +314,7 @@ public class BitwageTest {
     		"    \"zip\": \"34443\",\n" + 
     		"    \"website_url\": \"http://example.com\",\n" + 
     		"    \"ein\": \"12-1234567\",\n" + 
-    		"    \"email\" \"support@example.com\": \n" + 
+    		"    \"email\": \"support@example.com\"\n" +
     		"  },\n" + 
     		"  \"worker\": {\n" + 
     		"    \"id\": 5769603078684611,\n" + 
@@ -499,7 +338,7 @@ public class BitwageTest {
     		"  \"company\": {\n" + 
     		"    \"id\": \"6122080743456768\",\n" + 
     		"    \"name\": \"Hello, Inc.\"\n" + 
-    		"  }\n" + 
+    		"  },\n" +
     		"  \"invoices\": \n" + 
     		"    [\n" + 
     		"      {\n" + 
@@ -518,13 +357,14 @@ public class BitwageTest {
     		"    ]\n" + 
     		"}";
     
-    public static final String DELETE_PAYROLL_LOG_FAILURE = "{\n" + 
-    		"  \"success\": [5822463824887809],\n" + 
-    		"}";
-    
-    public static final String DELETE_PAYROLL_LOG_SUCESS = "{\n" + 
-    		"  \"success\": [5822463824887809],\n" + 
-    		"}";
+    public static final String DELETE_PAYROLL="{\n" +
+            "  \"success\": [5822463824887809],\n" +
+            "  \"failure\": [\n" +
+            "    {\n" +
+            "      \"payroll_id\": 5822463824887808\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
     
     public static final String PAYROLL_PAYMENT_METHOD = "{\n" +
     		"\"status\": \"success\",\n" +
@@ -601,18 +441,27 @@ public class BitwageTest {
             "  }\n" +
             "}";
 
-    public static final String GET_UUID_JSON =
-            "{" +
-                    "\"username\": \"chr.goros@gmail.com\"," +
-                    "\"uuid\": \"d72f22b5-cb00-4168-8f82-50ca35956f3d\"" +
-                    "}";
+    private static final String GET_SECRET_KEY = "{ \n" +
+            "    \"username\": \"joeshoe@gmail.com\",\n" +
+            "    \"apikey\": \"b47a747c2c654adba50f41acd2939511\",\n" +
+            "    \"apisecret\": \"80fe301033df46efb36355247044bbcb\"\n" +
+            "}";
 
-    private static final String GET_SECRET_KEY =
-            "{" +
-                    "\"username\": \"chr.goros@gmail.com\"," +
-                    "\"apikey\": \"a1de83637ed646a6add61c6227394710\"," +
-                    "\"apisecret\": \"211ec2845f0640f281f0ba03605896b2\"" +
-                    "}";
+    private static final String BPIEMPLIST = "{\n" +
+            "  \"bpiemplist\": [\n" +
+            "    {\n" +
+            "      \"ppname\": \"payroll provider name\",\n" +
+            "      \"created\": \"2016-09-09 05:33:08.238780\",\n" +
+            "      \"ppwebsite\": \"https://www.bitwage.com/\",\n" +
+            "      \"employer\": \"test employer\",\n" +
+            "      \"employerwebsite\": \"https://www.bitwage.com/\",\n" +
+            "      \"employercurrency\": \"USD\",\n" +
+            "      \"jobrole\": \"Employee\",\n" +
+            "      \"bpionboardid\": 6253195365934046,\n" +
+            "      \"order\": 1\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
 
     private static final String BPIEMPLOYER =
             "{" +
@@ -836,5 +685,69 @@ public class BitwageTest {
             "    \"next_page\":\"\",\n" +
             "    \"total_pages\":1\n" +
             "  }\n" +
+            "}";
+
+    private static final String TICKERS = "{\n" +
+            "    \"XBTUSD\": \"687.45\",\n" +
+            "    \"XBTEUR\": \"616.13\",\n" +
+            "    \"USDEUR\": \"0.88\",\n" +
+            "    \"EURPHP\": \"51.08\",\n" +
+            "    \"EURINR\": \"74.84\",\n" +
+            "    \"EURVND\": \"24841.15\",\n" +
+            "    \"USDVND\": \"22300.00\",\n" +
+            "    \"USDINR\": \"67.18\",\n" +
+            "    \"EURMXN\": \"20.44\",\n" +
+            "    \"EURUSD\": \"1.10\",\n" +
+            "    \"datetimeUTC\": \"2016-07-02 08:40:59\",\n" +
+            "    \"USDMXN\": \"18.35\",\n" +
+            "    \"USDBRL\": \"3.24\",\n" +
+            "    \"EURBRL\": \"3.60\",\n" +
+            "    \"USDPHP\": \"45.78\"\n" +
+            "}";
+
+    private static final String PROFILE = "{\n"+
+            "  \"user_id\": \"139343039393\",\n"+
+            "  \"first_name\": \"George\",\n"+
+            "  \"last_name\": \"Foogleshmidt\",\n"+
+            "  \"date_of_birth\": \"02-13-2010\",\n"+
+            "  \"phone_number\": \"19123457686\",\n"+
+            "  \"street_address\": \"123 First Street\",\n"+
+            "  \"city\": \"San Francisco\",\n"+
+            "  \"state\": \"CA\",\n"+
+            "  \"zip\": \"94120\"\n"+
+            "}";
+
+    private static final String COMPANIES = "{\n" +
+            "  \"companies\": [\n" +
+            "    {\n" +
+            "      \"company_id\": 12357567567,\n" +
+            "      \"company_name\": \"Najin\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"company_id\": 54358605335,\n" +
+            "      \"company_name\": \"Bape\"\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"default_company\": 12357567567\n" +
+            "}";
+
+    private static final String COMPANY = "{\n" +
+            "  \"company_name\": \"Example Company\",\n" +
+            "  \"company_id\": \"6403555720167424\",\n" +
+            "  \"street_address\": \"123 Main St.\",\n" +
+            "  \"country\": \"US\",\n" +
+            "  \"city\": \"Sunnyvale\",\n" +
+            "  \"state\": \"CA\",\n" +
+            "  \"zip\": \"12345\",\n" +
+            "  \"website_url\": \"http://www.example.com\",\n" +
+            "  \"email\": \"example@example.com\",\n" +
+            "  \"phone\": \"+1 (123) 456-7891\",\n" +
+            "  \"ein\": \"123151244\",\n" +
+            "  \"default_payment_method\": \"ach_credit\"\n" +
+            "}";
+
+    private static final String UUID = "{ \n" +
+            "    \"username\": \"joeshoe@gmail.com\",\n" +
+            "    \"uuid\": \"d72f22b5-cb00-4168-8f82-50ca35956f3d\"\n" +
             "}";
 }

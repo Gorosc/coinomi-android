@@ -9,7 +9,7 @@ import org.json.JSONObject;
  * Created by gkoro on 04-Nov-17.
  */
 
-class CompanyPaymentDetails extends BitwageBase{	
+public class CompanyPaymentDetails extends BitwageBase{
 
     private String printOnCheck;
     private String address;

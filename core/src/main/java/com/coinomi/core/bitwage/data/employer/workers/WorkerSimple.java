@@ -21,7 +21,11 @@ public class WorkerSimple extends BitwageBase {
         super(data);
         if (!isError) {
             try {
-                user_id = new BigInteger(data.getString("user_id"));
+                if (data.has("user_id"))
+                    user_id = new BigInteger(data.getString("user_id"));
+                else if (data.has("id"))
+                    user_id = new BigInteger(data.getString("id"));
+                else throw new ShapeShiftException("Worker has no Id");
                 email = data.getString("email");
                 role = data.optString("role");
             } catch (Exception e) {

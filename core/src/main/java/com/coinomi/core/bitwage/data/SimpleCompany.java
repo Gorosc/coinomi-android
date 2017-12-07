@@ -20,8 +20,16 @@ public class SimpleCompany extends BitwageBase{
         super(data);
         if (!isError) {
             try {
-                companyid = new BigInteger(data.getString("company_id"));
-                companyname = data.getString("company_name");
+                if (data.has("company_id"))
+                    companyid = new BigInteger(data.getString("company_id"));
+                else if (data.has("id"))
+                    companyid = new BigInteger(data.getString("id"));
+                else throw new ShapeShiftException("Company has no id");
+                if (data.has("company_name"))
+                    companyname = data.getString("company_name");
+                else if (data.has("name"))
+                    companyname = data.getString("name");
+                else companyname = null;
             } catch (Exception e) {
                 throw new ShapeShiftException("Could not parse object", e);
             }
